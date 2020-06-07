@@ -103,6 +103,7 @@ class TwoStageDetector(BaseDetector, RPNTestMixin):
                       gt_labels,
                       gt_bboxes_ignore=None,
                       gt_masks=None,
+                      gt_keypoints=None,
                       proposals=None,
                       **kwargs):
         """
@@ -155,6 +156,7 @@ class TwoStageDetector(BaseDetector, RPNTestMixin):
         roi_losses = self.roi_head.forward_train(x, img_metas, proposal_list,
                                                  gt_bboxes, gt_labels,
                                                  gt_bboxes_ignore, gt_masks,
+                                                 gt_keypoints,
                                                  **kwargs)
         losses.update(roi_losses)
 

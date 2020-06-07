@@ -13,6 +13,8 @@ class BaseRoIHead(nn.Module, metaclass=ABCMeta):
                  bbox_head=None,
                  mask_roi_extractor=None,
                  mask_head=None,
+                 keypoint_roi_extractor=None,
+                 keypoint_head=None,
                  shared_head=None,
                  train_cfg=None,
                  test_cfg=None):
@@ -28,6 +30,9 @@ class BaseRoIHead(nn.Module, metaclass=ABCMeta):
         if mask_head is not None:
             self.init_mask_head(mask_roi_extractor, mask_head)
 
+        if keypoint_head is not None:
+            self.init_keypoint_head(keypoint_roi_extractor, keypoint_head)
+
         self.init_assigner_sampler()
 
     @property
@@ -37,6 +42,10 @@ class BaseRoIHead(nn.Module, metaclass=ABCMeta):
     @property
     def with_mask(self):
         return hasattr(self, 'mask_head') and self.mask_head is not None
+
+    @property
+    def with_keypoint(self):
+        return hasattr(self, 'keypoint_head') and self.keypoint_head is not None
 
     @property
     def with_shared_head(self):
@@ -55,6 +64,10 @@ class BaseRoIHead(nn.Module, metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def init_keypoint_head(self):
+        pass
+
+    @abstractmethod
     def init_assigner_sampler(self):
         pass
 
@@ -67,6 +80,7 @@ class BaseRoIHead(nn.Module, metaclass=ABCMeta):
                       gt_labels,
                       gt_bboxes_ignore=None,
                       gt_masks=None,
+                      gt_keypoints=None,
                       **kwargs):
         """Forward function during training"""
         pass

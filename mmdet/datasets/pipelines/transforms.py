@@ -160,6 +160,17 @@ class Resize(object):
             else:
                 results[key] = results[key].resize(results['img_shape'][:2])
 
+    def _resize_keypoints(self, results):
+        for key in results.get('keypoint_fields', []):
+            if self.keep_ratio:
+                shape = results[key].shape
+                keypoints = results[key].reshape((shape[0], 17, 3)) * \
+                            np.array([results['scale_factor'][0], results['scale_factor'][1], 1]).reshape((1,1,3))
+                keypoints = keypoints.reshape((shape[0],51))
+            else:
+                raise "Not implement"
+            results[key] = keypoints
+
     def _resize_seg(self, results):
         for key in results.get('seg_fields', []):
             if self.keep_ratio:
@@ -177,6 +188,7 @@ class Resize(object):
         self._resize_bboxes(results)
         self._resize_masks(results)
         self._resize_seg(results)
+        self._resize_keypoints(results)
         return results
 
     def __repr__(self):
@@ -419,6 +431,17 @@ class RandomCrop(object):
                     valid_inds.nonzero()[0]].crop(
                         np.asarray([crop_x1, crop_y1, crop_x2, crop_y2]))
 
+        # crop keypoints accordingly and clip to the image boundary
+        for key in results.get('keypoint_fields', []):
+            keypoint_offset = np.array([offset_w, offset_h, 0])
+            keypoints = results[key] - keypoint_offset
+            outside_point_idx = keypoints[...,0] < 0 or \
+                                keypoints[..., 0] > (img.shape[1] - 1) or \
+                                keypoints[..., 1] < 0 or \
+                                keypoints[..., 1] > (img.shape[0] - 1)
+            keypoints[outside_point_idx][...,2] = 0
+            results[key] = keypoints
+
         # if no gt bbox remains after cropping, just skip this image
         # TODO: check whether we can keep the image regardless of the crop.
         if 'bbox_fields' in results and not valid_flag:
@@ -606,6 +629,10 @@ class Expand(object):
         for key in results.get('bbox_fields', []):
             results[key] += np.tile((left, top), 2).astype(results[key].dtype)
 
+        # expand keypoints
+        for key in results.get('keypoint_fields',[]):
+            results[key] += np.array([left, top, 0]).astype(results[key].dtype)
+
         # expand masks
         for key in results.get('mask_fields', []):
             results[key] = results[key].expand(
@@ -727,11 +754,16 @@ class MinIoURandomCrop(object):
                         if label_key in results:
                             results[label_key] = results[label_key][mask]
 
+                        if 'gt_keypoints' in results:
+                            offset = np.array([patch[0], patch[1], 0]).astype(boxes.dtype)
+                            results['gt_keypoints'] = results['gt_keypoints'] - offset
+
                         # mask fields
                         mask_key = self.bbox2mask.get(key)
                         if mask_key in results:
                             results[mask_key] = results[mask_key][
                                 mask.nonzero()[0]].crop(patch)
+
                 # adjust the img no matter whether the gt is empty before crop
                 img = img[patch[1]:patch[3], patch[0]:patch[2]]
                 results['img'] = img

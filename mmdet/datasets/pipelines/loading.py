@@ -160,6 +160,8 @@ class LoadAnnotations(object):
             Default: True.
         with_mask (bool): Whether to parse and load the mask annotation.
              Default: False.
+        with_keypoint (bool): Whether to parse and load the keypoint annotation.
+             Default: False.
         with_seg (bool): Whether to parse and load the semantic segmentation
             annotation. Default: False.
         poly2mask (bool): Whether to convert the instance masks from polygons
@@ -173,12 +175,14 @@ class LoadAnnotations(object):
                  with_bbox=True,
                  with_label=True,
                  with_mask=False,
+                 with_keypoint=False,
                  with_seg=False,
                  poly2mask=True,
                  file_client_args=dict(backend='disk')):
         self.with_bbox = with_bbox
         self.with_label = with_label
         self.with_mask = with_mask
+        self.with_keypoint = with_keypoint
         self.with_seg = with_seg
         self.poly2mask = poly2mask
         self.file_client_args = file_client_args.copy()
@@ -244,6 +248,12 @@ class LoadAnnotations(object):
         results['mask_fields'].append('gt_masks')
         return results
 
+    def _load_keypoints(self, results):
+        anno_info = results['ann_info']
+        results['gt_keypoints'] = anno_info['keypoints']
+        results['keypoint_fields'].append('gt_keypoints')
+        return results
+
     def _load_semantic_seg(self, results):
         if self.file_client is None:
             self.file_client = mmcv.FileClient(**self.file_client_args)
@@ -265,6 +275,8 @@ class LoadAnnotations(object):
             results = self._load_labels(results)
         if self.with_mask:
             results = self._load_masks(results)
+        if self.with_keypoint:
+            results = self._load_keypoints(results)
         if self.with_seg:
             results = self._load_semantic_seg(results)
         return results
@@ -274,6 +286,7 @@ class LoadAnnotations(object):
         repr_str += f'(with_bbox={self.with_bbox}, '
         repr_str += f'with_label={self.with_label}, '
         repr_str += f'with_mask={self.with_mask}, '
+        repr_str += f'with_keypoint={self.with_keypoint}, '
         repr_str += f'with_seg={self.with_seg})'
         repr_str += f'poly2mask={self.poly2mask})'
         repr_str += f'poly2mask={self.file_client_args})'
